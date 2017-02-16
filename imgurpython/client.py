@@ -121,6 +121,12 @@ class ImgurClient(object):
 
 
     def make_request(self, method, route, data=None, force_anon=False):
+        if hasattr(self, 'credits'):
+            if self.credits['UserRemaining'] and self.credits['ClientRemaining']:
+                if int(self.credits['UserRemaining']) < 10 or int(self.credits['ClientRemaining']) < 10:
+                    print "Stopping before credits run out (hopefully). User: {}  Client: {}  Time until refresh: {}".format(self.credits['UserRemaining'], self.credits['ClientRemaining'], self.credits['UserReset'])
+                    raise ImgurClientRateLimitError()
+
         method = method.lower()
         method_to_call = getattr(requests, method)
 
@@ -155,7 +161,7 @@ class ImgurClient(object):
         try:
             response_data = response.json()
         except:
-            raise ImgurClientError('JSON decoding of response failed.')
+            raise ImgurClientError('JSON decoding of response failed: HTTP Status: {}'.format(response.status_code))
 
         if 'data' in response_data and isinstance(response_data['data'], dict) and 'error' in response_data['data']:
             raise ImgurClientError(response_data['data']['error'], response.status_code)
